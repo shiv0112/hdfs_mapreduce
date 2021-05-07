@@ -1,0 +1,110 @@
+---
+# tasks file
+- name: hdfs-site file in namenode
+  copy:
+        dest: /etc/hadoop/hdfs-site.xml
+        src: mhdfs.xml
+  when: inventory_hostname in groups["master"]
+
+- name: hdfs-site file in datanode
+  copy:
+        src: shdfs.xml
+        dest: /etc/hadoop/hdfs-site.xml
+  when: inventory_hostname in groups["slaves"]
+
+- name: core-site file in namenode
+  copy:
+        dest: /etc/hadoop/core-site.xml
+        src: mcore.xml
+  when: inventory_hostname in groups["master"]
+
+- name: core-site file in datanode
+  copy:
+        dest: /etc/hadoop/core-site.xml
+        src: core-site.xml
+  when: inventory_hostname in groups["slaves"]
+
+- name: mapred file in jobtracker
+  copy:
+        dest: /etc/hadoop/mapred-site.xml
+        src: mmapred.xml
+  when: inventory_hostname in groups["jobtracker"]
+
+- name: mapred file in tasktracker
+  copy:
+        dest: /etc/hadoop/mapred-site.xml
+        src: mapred-site.xml
+  when: inventory_hostname in groups['tasktracker']
+
+- name: Adding core-site to jobtracker for namenode location
+  copy:
+        dest: /etc/hadoop/core-site.xml
+        src: core-site.xml
+  when: inventory_hostname in groups['jobtracker']
+  
+- name: starting the namenode
+  shell: "{{ item }}"
+  with_items:
+        - echo 'Y' | hadoop namenode -format
+        - hadoop-daemon.sh start namenode
+  when: inventory_hostname in groups["master"]
+
+- name: starting the datanode
+  command: "hadoop-daemon.sh start datanode"
+  when: inventory_hostname in groups["slaves"]
+
+- name: starting jobtracker
+  command: "hadoop-daemon.sh start jobtracker"
+  when: inventory_hostname in groups["jobtracker"]
+
+- name: starting tasktracker
+  command: "hadoop-daemon.sh start tasktracker"
+  when: inventory_hostname in groups["tasktracker"]
+
+- name: testing your setup
+  command: "hadoop dfsadmin -report"
+  register: x
+  when: inventory_hostname in groups["master"]
+
+- name: detail of dfs cluster
+  debug:
+          var: x
+
+- name: testing computing cluster
+  command: "hadoop job -list-active-trackers"
+  register: y
+  when: inventory_hostname in groups["jobtracker"] 
+
+- name: detail of computing cluster
+  debug:
+          var: y
+
+- name: configuring client with core-site
+  copy:
+        dest: /etc/hadoop/core-site.xml
+        src: core-site.xml
+  when: inventory_hostname in groups["client"]
+
+- name: configuring client with mapred-site
+  copy:
+        dest: /etc/hadoop/mapred-site.xml
+        src: mapred-site.xml
+  when: inventory_hostname in groups['client']
+
+- name: Downloading the hive in client
+  shell: "{{ item }}"
+  with_items: 
+          - wget https://archive.apache.org/dist/hive/hive-0.13.1/apache-hive-0.13.1-bin.tar.gz 
+          - tar -xvzf apache-hive-0.13.1-bin.tar.gz -C /opt
+  when: inventory_hostname in groups['client']
+
+- name: Setting up environment variables
+  blockinfile:
+        path: "/root/.bashrc"
+        marker: ""
+        block: |
+               export HIVE_HOME=/opt/apache-hive-0.13.1-bin/
+               export PATH=/opt/apache-hive-0.13.1-bin/bin/:$PATH
+  when: inventory_hostname in groups['client']
+
+

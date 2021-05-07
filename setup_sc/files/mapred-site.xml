@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+
+<!-- Put site-specific property overrides in this file. -->
+
+<configuration>
+<property>
+<name>mapred.job.tracker</name>
+<!-- BEGIN Automatic_update_IP -->
+<value>172.31.38.131:9002</value>
+<!-- END Automatic_update_IP -->
+</property>
+</configuration>

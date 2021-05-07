@@ -1,0 +1,4 @@
+---
+# vars file for supercomp
+count_slaves: 3
+count_tt: 3

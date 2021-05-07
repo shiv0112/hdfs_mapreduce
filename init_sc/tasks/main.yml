@@ -1,0 +1,133 @@
+---
+# tasks file
+- ec2:
+        region: ap-south-1
+        image: ami-0104a7469b0ef8f14
+        instance_type: t2.micro
+        vpc_subnet_id: subnet-c8c5cca0
+        group_id: sg-026dd3773ee684723
+        key_name: aws_putty
+        aws_access_key: {}
+        aws_secret_key: {}
+        instance_tags:
+                Name: "Master"
+        assign_public_ip: yes
+        wait: yes
+  register: x1
+- blockinfile:
+        path: "/root/ip.txt"
+        marker: ""
+        block: |
+                   [master]
+                   {{ item.public_ip }} ansible_user=ec2-user ansible_ssh_private_key_file=/root/aws_putty.pem ansible_connection=ssh
+  loop: "{{ x1.instances }}"
+
+- name: Update core-site.xml
+  blockinfile:
+        path: "/root/pb/setup_sc/files/core-site.xml"
+        insertafter: "<name>fs.default.name</name>"
+        marker: "<!-- {mark} Automatic_update_IP -->"
+        block: "<value>hdfs://{{ item.private_ip }}:9001</value>"
+  loop: "{{ x1.instances }}"
+
+- ec2:
+        region: ap-south-1
+        image: ami-0104a7469b0ef8f14
+        instance_type: t2.micro
+        vpc_subnet_id: subnet-c8c5cca0
+        group_id: sg-026dd3773ee684723
+        key_name: aws_putty
+        aws_access_key: {}
+        aws_secret_key: {}
+        instance_tags:
+                Name: "Datanode"
+        assign_public_ip: yes
+        wait: yes
+        count: "{{ count_slaves }}" 
+  register: x2
+
+- blockinfile:
+        path: "/root/ip.txt"
+        marker: ""
+        block: |
+                   [slaves]
+                   {{ item.public_ip }} ansible_user=ec2-user ansible_ssh_private_key_file=/root/aws_putty.pem ansible_connection=ssh
+  loop: "{{ x2.instances }}"
+
+- ec2:
+        region: ap-south-1
+        image: ami-0104a7469b0ef8f14
+        instance_type: t2.micro
+        vpc_subnet_id: subnet-c8c5cca0
+        group_id: sg-026dd3773ee684723
+        key_name: aws_putty
+        aws_access_key: {}
+        aws_secret_key: {}
+        instance_tags:
+                Name: "JobTracker"
+        assign_public_ip: yes
+        wait: yes
+  register: x3
+
+- blockinfile:
+        path: "/root/ip.txt"
+        marker: ""
+        block: |
+                   [jobtracker]
+                   {{ item.public_ip }} ansible_user=ec2-user ansible_ssh_private_key_file=/root/aws_putty.pem ansible_connection=ssh
+  loop: "{{ x3.instances }}"
+
+- name: Update mapred-site.xml
+  blockinfile:
+        path: "/root/pb/setup_sc/files/mapred-site.xml"
+        marker: "<!-- {mark} Automatic_update_IP -->"
+        insertafter: "<name>mapred.job.tracker</name>"
+        block: "<value>{{ item.private_ip }}:9002</value>"
+  loop: "{{ x3.instances }}"
+
+- ec2:
+        region: ap-south-1
+        image: ami-0104a7469b0ef8f14
+        instance_type: t2.micro
+        vpc_subnet_id: subnet-c8c5cca0
+        group_id: sg-026dd3773ee684723
+        key_name: aws_putty
+        aws_access_key: {}
+        aws_secret_key: {}
+        instance_tags:
+                Name: "TaskTracker"
+        assign_public_ip: yes
+        wait: yes
+        count: "{{ count_tt }}"
+  register: x4
+
+- blockinfile:
+        path: "/root/ip.txt"
+        marker: ""
+        block: |
+                   [tasktracker]
+                   {{ item.public_ip }} ansible_user=ec2-user ansible_ssh_private_key_file=/root/aws_putty.pem ansible_connection=ssh
+  loop: "{{ x4.instances }}"
+
+- ec2:
+        region: ap-south-1
+        image: ami-0104a7469b0ef8f14
+        instance_type: t2.micro
+        vpc_subnet_id: subnet-c8c5cca0
+        group_id: sg-026dd3773ee684723
+        key_name: aws_putty
+        aws_access_key: {}
+        aws_secret_key: {}
+        instance_tags:
+                Name: "Client"
+        assign_public_ip: yes
+        wait: yes
+  register: x5
+
+- blockinfile:
+        path: "/root/ip.txt"
+        marker: ""
+        block: |
+                   [client]
+                   {{ item.public_ip }} ansible_user=ec2-user ansible_ssh_private_key_file=/root/aws_putty.pem ansible_connection=ssh
+  loop: "{{ x5.instances }}"
